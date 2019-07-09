@@ -1,4 +1,4 @@
-(function() {
+(function( document ) {
 
 	Number.prototype.formatMoney = function(c, d, t) {
 
@@ -76,21 +76,21 @@
 
 		},
 		watch: {
-			extra_percentage: function(extra_percentage) {
+			extra_percentage: function( extra_percentage ) {
 
 				this.exta_hours = this.use_extra ? (extra_percentage / 100) : 0;
 
 				this.calculate_amount();
 
 			},
-			use_extra: function(use_extra) {
+			use_extra: function( use_extra ) {
 
 				this.exta_hours = use_extra ? (this.extra_percentage / 100) : 0;
 
 				this.calculate_amount();
 
 			},
-			is_new_client: function(is_new_client) {
+			is_new_client: function( is_new_client ) {
 
 				this.fees = is_new_client ? 0.175 : 0.15;
 
@@ -109,49 +109,87 @@
 			}
 		},
 		methods: {
+			switch_amount_inputs: function( e ) {
+
+				let hide_input = e.target,
+					show_input = document.getElementById( 'amount' === e.target.id ? 'amount-edit' : 'amount' );
+
+				hide_input.classList.add( 'd-none' );
+				show_input.classList.remove( 'd-none' );
+
+				if ( 'amount' === e.target.id ) {
+
+					show_input.value = hide_input.value.replace( /\$|,|\./g, '' );
+					show_input.focus();
+
+				}
+
+			},
+			money_format: function( e ) {
+
+				let amount = e.target.value.replace( /\$|,/g, '' );
+
+				e.target.value = this.$options.filters.money_format( amount );
+
+			},
+			recalcuate: function( e ) {
+
+				this.calculate_amount( parseInt( e.target.value ) );
+
+			},
 			select_all: function( e ) {
 				
 				e.target.select();
 
 			},
-			calculate_amount: function(amount) {
+			calculate_amount: function( amount ) {
 
-				amount = amount || this.amount;
+				if ( amount ) {
 
-				let base_hours = parseInt(this.hours);
+					this.amount = amount;
 
-				if (this.exta_hours > 0) {
+				} else {
 
-					base_hours = (base_hours + (base_hours * this.exta_hours)).toPrecision(3);
+					let base_hours = parseInt( this.hours );
+
+					if ( this.exta_hours > 0 ) {
+
+						base_hours = ( base_hours + ( base_hours * this.exta_hours ) ).toPrecision( 3 );
+
+					}
+
+					const real_hours = Math.floor( base_hours ),
+						dicimals = base_hours - real_hours;
+
+					this.total_hours = base_hours;
+					this.total_hours_formatted = real_hours + ' Hours' + ( dicimals ? ' ' + Math.round(dicimals * 60) + ' Minutes' : '' );
+
+					this.amount = Math.round( base_hours * this.hour_rate );
 
 				}
 
-				const real_hours = Math.floor(base_hours),
-					dicimals = base_hours - real_hours;
+				this.client_amount = this.amount + (this.amount * this.fees);
 
-				this.total_hours = base_hours;
-				this.total_hours_formatted = real_hours + ' Hours' + (dicimals ? ' ' + Math.round(dicimals * 60) + ' Minutes' : '');
+				this.client_fees = this.amount * this.fees;
 
-				amount = Math.round(base_hours * this.hour_rate);
+				this.expert_amount = this.amount - (this.amount * 0.10);
 
-				this.client_amount = amount + (amount * this.fees);
-
-				this.client_fees = amount * this.fees;
-
-				this.expert_amount = amount - (amount * 0.10);
-
-				this.expert_fees = amount * 0.10;
-
-				this.amount = amount;
+				this.expert_fees = this.amount * 0.10;
 
 			}
 		},
 		filters: {
-			money_format: function(value) {
+			money_format: function( value ) {
+
+				if( 'number' !== typeof value ) {
+
+					value = parseInt( value );
+
+				}
 
 				return '$' + value.formatMoney(0).toString();
 
 			}
 		}
 	});
-})();
+})( document );
